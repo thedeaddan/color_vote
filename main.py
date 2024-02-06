@@ -3,22 +3,38 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.camera import Camera
 from kivy.uix.button import Button
 from kivy.graphics.texture import Texture
+from kivy.graphics import Color, Rectangle
 from kivy.clock import Clock
 import requests
+from PIL import Image
+
+class ColorSquare(BoxLayout):
+    def __init__(self, **kwargs):
+        super(ColorSquare, self).__init__(**kwargs)
+        self.size_hint = (None, None)
+        self.width = 100
+        self.height = 100
+        self.color = Color(1, 1, 1, 1)  # Белый цвет по умолчанию
+        self.canvas.add(self.color)
+        self.canvas.add(Rectangle(pos=self.pos, size=self.size))
+
+    def update_color(self, new_color):
+        self.color.rgb = [val / 255.0 for val in new_color]
 
 class CameraApp(App):
     def build(self):
-        self.camera = Camera(resolution=(640, 480), play=True)
-        self.capture = None
+        self.camera = Camera(index=0, resolution=(1080, 1920), play=True)
         self.img_texture = None
 
         layout = BoxLayout(orientation='vertical')
 
         self.btn_scan = Button(text='Scan Color', on_press=self.scan_color)
+        self.color_square = ColorSquare()
         layout.add_widget(self.camera)
-        layout.add_widget(self.btn_scan)
+        layout.add_widget(self.color_square)
 
-        Clock.schedule_interval(self.update, 1.0 / 30.0)
+        Clock.schedule_interval(self.update, 1.0 / 30.0)  # Обновление img_texture каждые 1/30 секунды
+        Clock.schedule_interval(self.automatic_scan, 5.0)  # Автоматическое сканирование каждые 5 секунд
 
         return layout
 
@@ -26,16 +42,23 @@ class CameraApp(App):
         if self.camera.texture:
             self.img_texture = self.camera.texture
 
-    def scan_color(self, instance):
+    def scan_color(self):
         if self.img_texture:
-            # Считываем цвет кружочка (в данном случае, центр изображения)
-            center_pixel = self.img_texture.pixels[(self.img_texture.width // 2, self.img_texture.height // 2) * 3:][:3]
-            
+            # Получаем данные о цвете кружочка (в данном случае, центр изображения)
+            img = Image.frombytes('RGBA', (self.img_texture.width, self.img_texture.height), self.img_texture.pixels)
+            center_pixel = img.getpixel((self.img_texture.width // 2, self.img_texture.height // 2))
+
             # Преобразуем цвет в формат RGB
-            color = [int(val * 255) for val in center_pixel]
+            color = center_pixel[:3]
+
+            # Обновляем цвет квадрата
+            self.color_square.update_color(color)
 
             # Отправляем данные на сервер
-            self.send_to_server(color)
+            #self.send_to_server(color)    
+
+    def automatic_scan(self, dt):
+        self.scan_color()  # Вызываем функцию сканирования
 
     def send_to_server(self, color):
         # Настройте ваш API-URL и параметры запроса
