@@ -1,7 +1,6 @@
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.camera import Camera
-from kivy.uix.button import Button
 from kivy.graphics.texture import Texture
 from kivy.graphics import Color, Rectangle
 from kivy.clock import Clock
@@ -28,7 +27,6 @@ class CameraApp(App):
 
         layout = BoxLayout(orientation='vertical')
 
-        self.btn_scan = Button(text='Scan Color', on_press=self.scan_color)
         self.color_square = ColorSquare()
         layout.add_widget(self.camera)
         layout.add_widget(self.color_square)
